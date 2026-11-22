@@ -6,9 +6,12 @@ let timeonline = {};
 let socketToPath = {};
 
 const connectToSocket = (server) => {
+    const origins = process.env.FRONTEND_URL
+        ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
+        : "*";
     const io = new Server(server, {
         cors: {
-            origin: "*",
+            origin: origins,
             methods: ["GET", "POST"],
             allowedHeaders: ["*"],
         },

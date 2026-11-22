@@ -103,6 +103,36 @@ Base path: `/api/v1/users`
 | `chat_message` (text, sender) | both | Chat; history replayed to newcomers |
 | `user_left` (id) | server → client | Someone left |
 
+## Deployment
+
+Vercel cannot run the backend: Socket.IO needs a long-running server, and Vercel serverless functions do not keep WebSocket connections open. Deploy the two halves separately.
+
+### Backend (Render, Railway or Fly.io)
+
+- Root directory: `backend`, build command `npm install`, start command `npm start`
+- Environment variables:
+
+| Variable | Example | Notes |
+| --- | --- | --- |
+| `MONGO_URI` | `mongodb+srv://user:pass@cluster.mongodb.net/hola` | Required for login/history. In Atlas, allow the host's IPs under Network Access. |
+| `PORT` | `8000` | Usually set automatically by the host |
+| `FRONTEND_URL` | `https://your-app.vercel.app` | Allowed CORS origin(s), comma separated. Unset allows any origin. |
+
+### Frontend (Vercel)
+
+- Root directory: `frontend`, framework preset Vite (build `npm run build`, output `dist`)
+- Environment variable:
+
+| Variable | Example | Notes |
+| --- | --- | --- |
+| `VITE_SERVER_URL` | `https://your-backend.onrender.com` | Your deployed backend URL, no trailing slash. Set it before building: Vite bakes it in at build time. |
+
+`frontend/vercel.json` rewrites all routes to `index.html` so links like `/meet/abc123` work on refresh. Camera and mic need HTTPS, which Vercel provides.
+
+Order: deploy the backend, copy its URL into `VITE_SERVER_URL`, deploy the frontend, then set `FRONTEND_URL` on the backend to the Vercel URL.
+
+Copy `backend/.env.example` and `frontend/.env.example` for local setup.
+
 ## Scripts
 
 Frontend: `npm run dev`, `npm run build`, `npm run lint`, `npm run preview`.

@@ -13,10 +13,13 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
-const io = connectToSocket(server)
+const io = connectToSocket(server);
 
 app.set("port", process.env.PORT || 8000)
-app.use(cors());
+const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
+    : "*";
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ limit: "40kb", extended: true }));
 app.use("/api/v1/users", userRoutes);
