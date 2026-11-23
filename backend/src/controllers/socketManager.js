@@ -19,6 +19,7 @@ const connectToSocket = (server) => {
 
     io.on("connection", (socket) => {
         socket.on("join_call", (path) => {
+            if (typeof path !== "string" || socketToPath[socket.id] !== undefined) return;
             if (connections[path] === undefined) connections[path] = [];
 
             connections[path].push(socket.id);
@@ -43,6 +44,9 @@ const connectToSocket = (server) => {
         socket.on("chat_message", (data, sender) => {
             const path = socketToPath[socket.id];
             if (path === undefined) return;
+            if (typeof data !== "string" || !data.trim()) return;
+            data = data.slice(0, 2000);
+            sender = typeof sender === "string" ? sender.slice(0, 50) : "Guest";
 
             if (messages[path] === undefined) messages[path] = [];
             messages[path].push({ sender, data, "socket-id-sender": socket.id });
