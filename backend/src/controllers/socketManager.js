@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { getAllowedOrigins } from "../allowedOrigins.js";
 
 let connections = {};
 let messages = {};
@@ -6,9 +7,7 @@ let timeonline = {};
 let socketToPath = {};
 
 const connectToSocket = (server) => {
-    const origins = process.env.FRONTEND_URL
-        ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
-        : "*";
+    const origins = getAllowedOrigins();
     const io = new Server(server, {
         cors: {
             origin: origins,

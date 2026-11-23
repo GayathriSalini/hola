@@ -7,6 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectToSocket from "./controllers/socketManager.js";
 
+import { getAllowedOrigins } from "./allowedOrigins.js";
 import userRoutes from "./routes/users.routes.js";
 
 dotenv.config();
@@ -16,10 +17,7 @@ const server = createServer(app);
 const io = connectToSocket(server);
 
 app.set("port", process.env.PORT || 8000)
-const allowedOrigins = process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
-    : "*";
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({ origin: getAllowedOrigins() }));
 app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ limit: "40kb", extended: true }));
 app.use("/api/v1/users", userRoutes);
