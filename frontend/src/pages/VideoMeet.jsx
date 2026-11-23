@@ -32,6 +32,7 @@ export default function VideoMeet() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
   const [online, setOnline] = useState(true)
+  const [mediaReady, setMediaReady] = useState(() => !navigator.mediaDevices?.getUserMedia)
 
   const copy = async (what) => {
     const text = what === 'link' ? window.location.href : code
@@ -65,6 +66,7 @@ export default function VideoMeet() {
         if (lobbyRef.current) lobbyRef.current.srcObject = s
       })
       .catch(() => setError('Camera/microphone unavailable. You can still join without them.'))
+      .finally(() => { if (!cancelled) setMediaReady(true) })
     return () => { cancelled = true }
   }, [])
 
@@ -85,7 +87,13 @@ export default function VideoMeet() {
       if (e.candidate) socketRef.current?.emit('signal', id, JSON.stringify({ ice: e.candidate }))
     }
     pc.ontrack = (e) => setRemotes((r) => ({ ...r, [id]: e.streams[0] }))
-    streamRef.current?.getTracks().forEach((t) => pc.addTrack(t, streamRef.current))
+    const local = streamRef.current
+    ;['video', 'audio'].forEach((kind) => {
+      const track = local?.getTracks().find((t) => t.kind === kind)
+      // Without a local device we still need to be able to receive the other side.
+      if (track) pc.addTrack(track, local)
+      else pc.addTransceiver(kind, { direction: 'recvonly' })
+    })
     return pc
   }, [])
 
@@ -147,7 +155,9 @@ export default function VideoMeet() {
 
   const replaceVideoTrack = (track) => {
     Object.values(peers.current).forEach((pc) => {
-      pc.getSenders().find((s) => s.track?.kind === 'video')?.replaceTrack(track)
+      const tx = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')
+      if (tx && tx.direction === 'recvonly') tx.direction = 'sendrecv'
+      tx?.sender.replaceTrack(track || null)
     })
   }
 
@@ -201,7 +211,7 @@ export default function VideoMeet() {
           <video ref={lobbyRef} autoPlay muted playsInline className="lobby-video" />
           {error && <p className="error">{error}</p>}
           <input placeholder="Your name" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <button className="btn big" onClick={connect}>Join now</button>
+          <button className="btn big" onClick={connect} disabled={!mediaReady}>{mediaReady ? 'Join now' : 'Starting camera…'}</button>
         </div>
         </div>
       </div>
@@ -213,7 +223,7 @@ export default function VideoMeet() {
       <div className="meet-main">
         {navBar}
         {copyBar}
-        {!online && <p className="error banner">Can't reach the server — chat and other participants won't work. Is the backend running?</p>}
+        {!online && <p className="error banner">Can't reach the server ({SERVER}) — chat and other participants won't work. If it is a free Render server it may be waking up (up to a minute); otherwise check the backend is running.</p>}
         <div className="grid" data-count={Object.keys(remotes).length + 1}>
           <div className="video-tile">
             <video ref={localRef} autoPlay muted playsInline />

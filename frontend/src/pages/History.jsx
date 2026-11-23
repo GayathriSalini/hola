@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getHistory, getToken } from '../api'
+import { getHistory, getToken, setToken } from '../api'
 
 export default function History() {
   const nav = useNavigate()
@@ -8,8 +8,11 @@ export default function History() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    getHistory(getToken()).then(setItems).catch((e) => setError(e.message))
-  }, [])
+    getHistory(getToken()).then(setItems).catch((e) => {
+      if (e.message === 'Invalid token') { setToken(null); nav('/auth'); return }
+      setError(e.message)
+    })
+  }, [nav])
 
   return (
     <div className="landing">
